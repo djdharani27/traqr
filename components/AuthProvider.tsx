@@ -62,21 +62,37 @@ export function AuthProvider({ children }: { children?: ReactNode }) {
 
   useEffect(() => {
     let unsubscribe: (() => void) | null = null;
+    let cancelled = false;
+
+    const timeout = setTimeout(() => {
+      if (!cancelled) {
+        console.warn("[AUTH] onAuthStateChanged timeout — forcing loading=false");
+        setLoading(false);
+      }
+    }, 10_000);
 
     (async () => {
-      const { onAuthStateChanged } = await import("firebase/auth");
-      const auth = await getOrInitAuth();
-      _initialized = true;
+      try {
+        const { onAuthStateChanged } = await import("firebase/auth");
+        const auth = await getOrInitAuth();
+        _initialized = true;
 
-      console.log("[AUTH] onAuthStateChanged listener registered");
-      unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-        console.log("[AUTH] onAuthStateChanged fired:", firebaseUser ? `uid=${firebaseUser.uid}` : "null");
-        setUser(firebaseUser);
-        setLoading(false);
-      });
+        console.log("[AUTH] onAuthStateChanged listener registered");
+        unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+          console.log("[AUTH] onAuthStateChanged fired:", firebaseUser ? `uid=${firebaseUser.uid}` : "null");
+          setUser(firebaseUser);
+          setLoading(false);
+          clearTimeout(timeout);
+        });
+      } catch (err) {
+        console.error("[AUTH] Firebase initialization FAILED:", err);
+        if (!cancelled) setLoading(false);
+      }
     })();
 
     return () => {
+      cancelled = true;
+      clearTimeout(timeout);
       console.log("[AUTH] useEffect cleanup: unsubscribing onAuthStateChanged");
       if (unsubscribe) unsubscribe();
     };
