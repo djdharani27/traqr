@@ -15,23 +15,18 @@ interface TaskCardProps {
 export function TaskCard({ task }: TaskCardProps) {
   return (
     <div className="flex items-start gap-3 rounded-md border p-3">
-      <form
-        action={async () => {
+      <label
+        className="flex items-center justify-center size-8 mt-0.5 cursor-pointer rounded-md hover:bg-accent"
+        onClick={async (e) => {
+          e.preventDefault();
           await completeTaskAction(task.id);
         }}
       >
-        <Button
-          type="submit"
-          variant="ghost"
-          size="icon"
-          className="size-8 mt-0.5"
-        >
-          <Checkbox
-            checked={task.completed}
-            className={task.completed ? "opacity-50 pointer-events-none" : "pointer-events-none"}
-          />
-        </Button>
-      </form>
+        <Checkbox
+          checked={task.completed}
+          className="pointer-events-none"
+        />
+      </label>
       <div className="flex-1 min-w-0">
         <p
           className={`text-sm font-medium ${

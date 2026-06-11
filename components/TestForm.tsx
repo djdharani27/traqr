@@ -44,6 +44,8 @@ export function TestForm({ defaultDate, onSuccess }: TestFormProps) {
   const [type, setType] = useState<TestType>("sectional");
   const [correct, setCorrect] = useState("");
   const [total, setTotal] = useState("");
+  const [platform, setPlatform] = useState("Oliveboard");
+  const [customPlatform, setCustomPlatform] = useState("");
 
   const today = format(new Date(), "yyyy-MM-dd");
   const percentage =
@@ -123,7 +125,11 @@ export function TestForm({ defaultDate, onSuccess }: TestFormProps) {
           )}
           <div className="space-y-2">
             <Label>Platform</Label>
-            <Select name="platform" required defaultValue="Oliveboard">
+            <Select
+              value={platform}
+              onValueChange={(v) => setPlatform(v)}
+              required
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -135,6 +141,20 @@ export function TestForm({ defaultDate, onSuccess }: TestFormProps) {
                 ))}
               </SelectContent>
             </Select>
+            {platform === "Custom" && (
+              <Input
+                name="platformCustom"
+                placeholder="Enter custom platform name"
+                value={customPlatform}
+                onChange={(e) => setCustomPlatform(e.target.value)}
+                required
+              />
+            )}
+            <input
+              type="hidden"
+              name="platform"
+              value={platform === "Custom" ? customPlatform : platform}
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
