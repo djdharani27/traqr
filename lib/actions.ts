@@ -1,13 +1,26 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { addTest, deleteTest, updateTest } from "./services";
-import { addRemark, deleteRemark } from "./services";
-import { addTask, completeTask, deleteTask } from "./services";
+import { getCurrentUser } from "./auth-server";
+import {
+  addTest,
+  deleteTest,
+  updateTest,
+  addRemark,
+  deleteRemark,
+  addTask,
+  completeTask,
+  deleteTask,
+} from "./services";
 import type { Subject, TestType } from "@/types";
 
+function requireUser(user: Awaited<ReturnType<typeof getCurrentUser>>) {
+  if (!user) throw new Error("Unauthorized");
+  return user;
+}
+
 export async function addTestAction(formData: FormData): Promise<void> {
+  const user = requireUser(await getCurrentUser());
   const date = formData.get("date") as string;
   const type = formData.get("type") as TestType;
   const subject = formData.get("subject") as Subject;
@@ -15,7 +28,7 @@ export async function addTestAction(formData: FormData): Promise<void> {
   const correct = parseInt(formData.get("correct") as string);
   const total = parseInt(formData.get("total") as string);
 
-  await addTest({ date, type, subject, platform, correct, total });
+  await addTest(user.uid, { date, type, subject, platform, correct, total });
   revalidatePath("/");
   revalidatePath("/calendar");
   revalidatePath("/tests");
@@ -27,6 +40,7 @@ export async function updateTestAction(
   id: string,
   formData: FormData
 ): Promise<void> {
+  const user = requireUser(await getCurrentUser());
   const date = formData.get("date") as string;
   const type = formData.get("type") as TestType;
   const subject = formData.get("subject") as Subject;
@@ -34,7 +48,7 @@ export async function updateTestAction(
   const correct = parseInt(formData.get("correct") as string);
   const total = parseInt(formData.get("total") as string);
 
-  await updateTest(id, { date, type, subject, platform, correct, total });
+  await updateTest(user.uid, id, { date, type, subject, platform, correct, total });
   revalidatePath("/");
   revalidatePath("/calendar");
   revalidatePath("/tests");
@@ -43,7 +57,8 @@ export async function updateTestAction(
 }
 
 export async function deleteTestAction(id: string, date: string): Promise<void> {
-  await deleteTest(id);
+  const user = requireUser(await getCurrentUser());
+  await deleteTest(user.uid, id);
   revalidatePath("/");
   revalidatePath("/calendar");
   revalidatePath("/tests");
@@ -55,8 +70,9 @@ export async function addRemarkAction(
   date: string,
   formData: FormData
 ): Promise<void> {
+  const user = requireUser(await getCurrentUser());
   const remark = formData.get("remark") as string;
-  await addRemark(date, remark);
+  await addRemark(user.uid, date, remark);
   revalidatePath("/");
   revalidatePath("/calendar");
   revalidatePath(`/day/${date}`);
@@ -66,18 +82,20 @@ export async function deleteRemarkAction(
   date: string,
   index: number
 ): Promise<void> {
-  await deleteRemark(date, index);
+  const user = requireUser(await getCurrentUser());
+  await deleteRemark(user.uid, date, index);
   revalidatePath("/");
   revalidatePath("/calendar");
   revalidatePath(`/day/${date}`);
 }
 
 export async function addTaskAction(formData: FormData): Promise<void> {
+  const user = requireUser(await getCurrentUser());
   const title = formData.get("title") as string;
   const sourceDate = formData.get("sourceDate") as string;
   const targetDate = formData.get("targetDate") as string;
 
-  await addTask({ title, sourceDate, targetDate });
+  await addTask(user.uid, { title, sourceDate, targetDate });
   revalidatePath("/");
   revalidatePath("/calendar");
   revalidatePath(`/day/${sourceDate}`);
@@ -85,13 +103,15 @@ export async function addTaskAction(formData: FormData): Promise<void> {
 }
 
 export async function completeTaskAction(id: string): Promise<void> {
-  await completeTask(id);
+  const user = requireUser(await getCurrentUser());
+  await completeTask(user.uid, id);
   revalidatePath("/");
   revalidatePath("/calendar");
 }
 
 export async function deleteTaskAction(id: string): Promise<void> {
-  await deleteTask(id);
+  const user = requireUser(await getCurrentUser());
+  await deleteTask(user.uid, id);
   revalidatePath("/");
   revalidatePath("/calendar");
 }

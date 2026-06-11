@@ -1,11 +1,16 @@
+import { getCurrentUser } from "@/lib/auth-server";
+import { redirect } from "next/navigation";
 import { getTests, getAllStudyDays, getAllTasks } from "@/lib/services";
 import { CalendarView } from "@/components/CalendarView";
 
 export default async function CalendarPage() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
   const [tests, studyDays, tasks] = await Promise.all([
-    getTests(),
-    getAllStudyDays(),
-    getAllTasks(),
+    getTests(user.uid),
+    getAllStudyDays(user.uid),
+    getAllTasks(user.uid),
   ]);
 
   return (

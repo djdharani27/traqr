@@ -1,4 +1,4 @@
-import { getTests, getStudyDay, getTasksByTargetDate, getAllStudyDays, getAllTasks } from "@/lib/services";
+import { getTests, getStudyDay, getTasksByTargetDate, getAllStudyDays } from "@/lib/services";
 import { format, parseISO } from "date-fns";
 import {
   CalendarDays,
@@ -19,16 +19,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { SearchBar } from "./SearchBar";
 
-export async function TodayDashboard() {
+interface TodayDashboardProps {
+  userId: string;
+}
+
+export async function TodayDashboard({ userId }: TodayDashboardProps) {
   const today = format(new Date(), "yyyy-MM-dd");
-  const [tests, studyDay, tasks, allStudyDays, allTasks, allTests] =
+  const [tests, studyDay, tasks, allStudyDays, allTests] =
     await Promise.all([
-      getTests(today),
-      getStudyDay(today),
-      getTasksByTargetDate(today),
-      getAllStudyDays(),
-      getAllTasks(),
-      getTests(),
+      getTests(userId, today),
+      getStudyDay(userId, today),
+      getTasksByTargetDate(userId, today),
+      getAllStudyDays(userId),
+      getTests(userId),
     ]);
 
   const pendingTasks = tasks.filter((t) => !t.completed);

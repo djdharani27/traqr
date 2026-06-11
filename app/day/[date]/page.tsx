@@ -1,3 +1,5 @@
+import { getCurrentUser } from "@/lib/auth-server";
+import { redirect } from "next/navigation";
 import { getTests, getStudyDay, getTasksByTargetDate } from "@/lib/services";
 import { format, parseISO } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,11 +19,14 @@ interface DayPageProps {
 }
 
 export default async function DayPage({ params }: DayPageProps) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
   const { date } = await params;
   const [tests, studyDay, tasks] = await Promise.all([
-    getTests(date),
-    getStudyDay(date),
-    getTasksByTargetDate(date),
+    getTests(user.uid, date),
+    getStudyDay(user.uid, date),
+    getTasksByTargetDate(user.uid, date),
   ]);
 
   const formattedDate = format(parseISO(date), "EEEE, MMMM d, yyyy");
@@ -45,7 +50,6 @@ export default async function DayPage({ params }: DayPageProps) {
       <Separator />
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Tests */}
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-base">Tests</CardTitle>
@@ -113,7 +117,6 @@ export default async function DayPage({ params }: DayPageProps) {
           </CardContent>
         </Card>
 
-        {/* Remarks */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Remarks</CardTitle>
@@ -131,7 +134,6 @@ export default async function DayPage({ params }: DayPageProps) {
           </CardContent>
         </Card>
 
-        {/* Tasks */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Tasks</CardTitle>

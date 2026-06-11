@@ -1,10 +1,15 @@
+import { getCurrentUser } from "@/lib/auth-server";
+import { redirect } from "next/navigation";
 import { getTests } from "@/lib/services";
 import { TestHistoryTable } from "@/components/TestHistoryTable";
 import { TestForm } from "@/components/TestForm";
 import { format } from "date-fns";
 
 export default async function TestsPage() {
-  const tests = await getTests();
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  const tests = await getTests(user.uid);
   const today = format(new Date(), "yyyy-MM-dd");
 
   return (

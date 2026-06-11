@@ -1,3 +1,5 @@
+import { getCurrentUser } from "@/lib/auth-server";
+import { redirect } from "next/navigation";
 import { getTests } from "@/lib/services";
 import {
   getSubjectAverage,
@@ -22,7 +24,10 @@ import {
 const subjects: Subject[] = ["Math", "Reasoning", "GK", "English"];
 
 export default async function AnalyticsPage() {
-  const tests = await getTests();
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
+  const tests = await getTests(user.uid);
 
   const subjectAverages = subjects.map((s) => ({
     subject: s,
@@ -43,7 +48,6 @@ export default async function AnalyticsPage() {
         </p>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Tests"
@@ -85,7 +89,6 @@ export default async function AnalyticsPage() {
 
       <Separator />
 
-      {/* Subject Averages */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {subjectAverages.map(({ subject, average }) => (
           <Card key={subject}>
@@ -115,7 +118,6 @@ export default async function AnalyticsPage() {
         </Card>
       </div>
 
-      {/* Weak Subject Cards */}
       {weakSubjects.length > 0 && (
         <div>
           <h2 className="text-lg font-semibold mb-4">⚠️ Weak Subjects</h2>
@@ -125,7 +127,6 @@ export default async function AnalyticsPage() {
 
       <Separator />
 
-      {/* Subject Progress Charts */}
       <div className="space-y-6">
         <h2 className="text-lg font-semibold">Subject Progress</h2>
         <div className="grid gap-6 lg:grid-cols-2">
@@ -145,7 +146,6 @@ export default async function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Overall Progress */}
       {overallTrend.length > 0 && (
         <div>
           <h2 className="text-lg font-semibold mb-4">Overall Mock Progress</h2>
