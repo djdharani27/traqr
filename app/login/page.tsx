@@ -2,13 +2,31 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AlertCircle, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { GraduationCap } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 
+const AUTH_ERROR_MAP: Record<string, string> = {
+  "auth/unauthorized-domain":
+    "This domain is not authorized for sign-in. Add it in Firebase Console > Authentication > Settings.",
+  "auth/popup-blocked":
+    "Sign-in popup was blocked. Please allow popups for this site.",
+  "auth/popup-closed-by-user": "Sign-in was cancelled.",
+  "auth/user-disabled": "This account has been disabled.",
+};
+
+function getErrorMessage(err: unknown): string {
+  if (typeof err === "string" && AUTH_ERROR_MAP[err]) return AUTH_ERROR_MAP[err];
+  const code = (err as { code?: string })?.code;
+  if (code && AUTH_ERROR_MAP[code]) return AUTH_ERROR_MAP[code];
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  return "An unexpected error occurred. Please try again.";
+}
+
 export default function LoginPage() {
-  const { user, loading, signIn } = useAuth();
+  const { user, loading, error, signIn, clearError } = useAuth();
   const router = useRouter();
   const [signingIn, setSigningIn] = useState(false);
 
@@ -22,6 +40,7 @@ export default function LoginPage() {
   async function handleSignIn() {
     console.log("[AUTH] handleSignIn: starting");
     setSigningIn(true);
+    clearError();
     try {
       await signIn();
       console.log("[AUTH] handleSignIn: signIn returned, pushing to /");
@@ -71,6 +90,12 @@ export default function LoginPage() {
             </svg>
             Continue with Google
           </Button>
+          {error && (
+            <div className="flex items-start gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+              <AlertCircle className="mt-0.5 size-4 shrink-0" />
+              <span>{getErrorMessage(error)}</span>
+            </div>
+          )}
           {loading && (
             <p className="text-center text-sm text-muted-foreground">
               Checking session...
