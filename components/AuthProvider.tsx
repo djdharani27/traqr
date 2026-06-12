@@ -14,7 +14,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   error: string | null;
-  signIn: () => Promise<void>;
+  signIn: () => Promise<User>;
   signOut: () => Promise<void>;
   clearError: () => void;
 }
@@ -23,7 +23,9 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   error: null,
-  signIn: async () => {},
+  signIn: async () => {
+    throw new Error("AuthContext not initialized");
+  },
   signOut: async () => {},
   clearError: () => {},
 });
@@ -59,6 +61,19 @@ async function getOrInitAuth(): Promise<Auth> {
   return _auth;
 }
 
+async function createSession(firebaseUser: User): Promise<void> {
+  const idToken = await firebaseUser.getIdToken();
+  const response = await fetch("/api/auth/session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ idToken }),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || `Session creation failed: ${response.status}`);
+  }
+}
+
 export function AuthProvider({ children }: { children?: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -69,77 +84,32 @@ export function AuthProvider({ children }: { children?: ReactNode }) {
   useEffect(() => {
     let unsubscribe: (() => void) | null = null;
     let cancelled = false;
-    let sessionCreated = false;
-
-    const timeout = setTimeout(() => {
-      if (!cancelled) {
-        console.warn("[AUTH] onAuthStateChanged timeout — forcing loading=false");
-        setLoading(false);
-      }
-    }, 10_000);
+    let sessionAttempted = false;
 
     (async () => {
       try {
-        const { onAuthStateChanged, getRedirectResult } = await import("firebase/auth");
+        const { onAuthStateChanged } = await import("firebase/auth");
         const auth = await getOrInitAuth();
 
-        // Register onAuthStateChanged BEFORE getRedirectResult so we never miss
-        // an auth state update (fixes race condition on redirect return).
-        console.log("[AUTH] Registering onAuthStateChanged listener...");
         unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-          console.log("[AUTH] onAuthStateChanged fired:", firebaseUser ? `uid=${firebaseUser.uid}` : "null");
+          console.log("[AUTH] onAuthStateChanged:", firebaseUser ? `uid=${firebaseUser.uid}` : "null");
 
-          if (firebaseUser && !sessionCreated && !cancelled) {
-            sessionCreated = true;
+          if (firebaseUser && !sessionAttempted && !cancelled) {
+            sessionAttempted = true;
             try {
-              const idToken = await firebaseUser.getIdToken();
-              const response = await fetch("/api/auth/session", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ idToken }),
-              });
-              if (response.ok) {
-                console.log("[AUTH] Session cookie set via onAuthStateChanged");
-              } else {
-                console.error("[AUTH] Session creation via onAuthStateChanged failed:", response.status);
-                sessionCreated = false; // allow retry on next fire
-              }
+              await createSession(firebaseUser);
+              console.log("[AUTH] Session cookie set via onAuthStateChanged");
             } catch (err) {
-              console.error("[AUTH] Session creation via onAuthStateChanged error:", err);
-              sessionCreated = false;
+              console.error("[AUTH] Session creation via onAuthStateChanged failed:", err);
+              sessionAttempted = false;
             }
           }
 
-          setUser(firebaseUser);
-          setLoading(false);
-          clearTimeout(timeout);
+          if (!cancelled) {
+            setUser(firebaseUser);
+            setLoading(false);
+          }
         });
-
-        // Also try to get the redirect result if this was a redirect-based sign-in.
-        // If getRedirectResult succeeds, sessionCreated prevents a duplicate call
-        // from the onAuthStateChanged handler above.
-        try {
-          const redirectResult = await getRedirectResult(auth);
-          if (redirectResult && !cancelled) {
-            console.log("[AUTH] Redirect result obtained:", redirectResult.user.uid);
-            if (!sessionCreated) {
-              sessionCreated = true;
-              const idToken = await redirectResult.user.getIdToken();
-              const response = await fetch("/api/auth/session", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ idToken }),
-              });
-              if (response.ok) {
-                console.log("[AUTH] Session cookie set after redirect");
-              } else {
-                console.error("[AUTH] Session creation after redirect failed:", response.status);
-              }
-            }
-          }
-        } catch (redirectErr) {
-          console.error("[AUTH] getRedirectResult failed:", redirectErr);
-        }
       } catch (err) {
         console.error("[AUTH] Firebase initialization FAILED:", err);
         if (!cancelled) setLoading(false);
@@ -148,24 +118,32 @@ export function AuthProvider({ children }: { children?: ReactNode }) {
 
     return () => {
       cancelled = true;
-      clearTimeout(timeout);
-      console.log("[AUTH] useEffect cleanup: unsubscribing onAuthStateChanged");
       if (unsubscribe) unsubscribe();
     };
   }, []);
 
-  const signIn = useCallback(async () => {
+  const signIn = useCallback(async (): Promise<User> => {
     console.log("[AUTH] signIn() called");
     setError(null);
     try {
-      const { signInWithRedirect, GoogleAuthProvider } = await import("firebase/auth");
+      const { signInWithPopup, GoogleAuthProvider } = await import("firebase/auth");
       const auth = await getOrInitAuth();
-      console.log("[AUTH] signInWithRedirect starting...");
-      await signInWithRedirect(auth, new GoogleAuthProvider());
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+
+      console.log("[AUTH] signInWithPopup starting...");
+      const result = await signInWithPopup(auth, provider);
+      console.log("[AUTH] signInWithPopup succeeded:", result.user.uid);
+
+      await createSession(result.user);
+      console.log("[AUTH] Session cookie created after popup sign-in");
+
+      setUser(result.user);
+      return result.user;
     } catch (err) {
       const code = (err as { code?: string })?.code;
       const msg = code ?? (err instanceof Error ? err.message : String(err));
-      console.error("[AUTH] signInWithRedirect FAILED:", msg);
+      console.error("[AUTH] signIn FAILED:", msg);
       setError(msg);
       throw err;
     }
@@ -176,9 +154,9 @@ export function AuthProvider({ children }: { children?: ReactNode }) {
     const { signOut: fbSignOut } = await import("firebase/auth");
     const auth = await getOrInitAuth();
     await fbSignOut(auth);
-    console.log("[AUTH] Firebase signOut complete");
     await fetch("/api/auth/session", { method: "DELETE" });
-    console.log("[AUTH] Session cookie cleared, signOut complete");
+    setUser(null);
+    console.log("[AUTH] signOut complete");
   }, []);
 
   return (

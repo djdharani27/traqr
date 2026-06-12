@@ -14,6 +14,8 @@ const AUTH_ERROR_MAP: Record<string, string> = {
     "Sign-in popup was blocked. Please allow popups for this site.",
   "auth/popup-closed-by-user": "Sign-in was cancelled.",
   "auth/user-disabled": "This account has been disabled.",
+  "auth/cancelled-popup-request":
+    "Sign-in popup was dismissed.",
 };
 
 function getErrorMessage(err: unknown): string {
@@ -30,23 +32,19 @@ export default function LoginPage() {
   const router = useRouter();
   const [signingIn, setSigningIn] = useState(false);
 
-  // Only auto-redirect when NOT mid-sign-in (prevents cookie race)
   useEffect(() => {
-    if (!signingIn && !loading && user) {
+    if (!loading && user) {
       router.push("/");
     }
-  }, [signingIn, user, loading, router]);
+  }, [user, loading, router]);
 
   async function handleSignIn() {
-    console.log("[AUTH] handleSignIn: starting");
     setSigningIn(true);
     clearError();
     try {
       await signIn();
-      console.log("[AUTH] handleSignIn: signIn returned, pushing to /");
       router.push("/");
-    } catch (err) {
-      console.error("[AUTH] handleSignIn: signIn FAILED:", err);
+    } catch {
       setSigningIn(false);
     }
   }
