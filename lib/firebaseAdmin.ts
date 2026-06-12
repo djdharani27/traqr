@@ -11,12 +11,14 @@ export function ensureAdminInitialized(): void {
 
   const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
   if (serviceAccountKey) {
+    const normalizedKey = serviceAccountKey.replace(/\n/g, "");
+
     let parsed;
     try {
-      parsed = JSON.parse(serviceAccountKey);
+      parsed = JSON.parse(normalizedKey);
     } catch (e) {
-      console.error("[AUTH] FIREBASE_SERVICE_ACCOUNT_KEY is not valid JSON:", e);
-      throw new Error("FIREBASE_SERVICE_ACCOUNT_KEY is not valid JSON");
+      console.error("[AUTH] FIREBASE_SERVICE_ACCOUNT_KEY is not valid JSON. Ensure it is a single line with \\n escape sequences for the private key, not literal newlines.", e);
+      throw new Error("FIREBASE_SERVICE_ACCOUNT_KEY is not valid JSON. The private key must use \\n escape sequences, not literal newlines.");
     }
 
     const isPlaceholder =

@@ -1,5 +1,6 @@
-import { cookies } from "next/headers";
 import { setSessionCookie, clearSessionCookie } from "@/lib/auth-server";
+
+export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   console.log("[AUTH] POST /api/auth/session called");
