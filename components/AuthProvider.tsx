@@ -69,6 +69,7 @@ export function AuthProvider({ children }: { children?: ReactNode }) {
   useEffect(() => {
     let unsubscribe: (() => void) | null = null;
     let cancelled = false;
+    let sessionCreated = false;
 
     const timeout = setTimeout(() => {
       if (!cancelled) {
@@ -81,33 +82,64 @@ export function AuthProvider({ children }: { children?: ReactNode }) {
       try {
         const { onAuthStateChanged, getRedirectResult } = await import("firebase/auth");
         const auth = await getOrInitAuth();
+
+        // Register onAuthStateChanged BEFORE getRedirectResult so we never miss
+        // an auth state update (fixes race condition on redirect return).
+        console.log("[AUTH] Registering onAuthStateChanged listener...");
+        unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+          console.log("[AUTH] onAuthStateChanged fired:", firebaseUser ? `uid=${firebaseUser.uid}` : "null");
+
+          if (firebaseUser && !sessionCreated && !cancelled) {
+            sessionCreated = true;
+            try {
+              const idToken = await firebaseUser.getIdToken();
+              const response = await fetch("/api/auth/session", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ idToken }),
+              });
+              if (response.ok) {
+                console.log("[AUTH] Session cookie set via onAuthStateChanged");
+              } else {
+                console.error("[AUTH] Session creation via onAuthStateChanged failed:", response.status);
+                sessionCreated = false; // allow retry on next fire
+              }
+            } catch (err) {
+              console.error("[AUTH] Session creation via onAuthStateChanged error:", err);
+              sessionCreated = false;
+            }
+          }
+
+          setUser(firebaseUser);
+          setLoading(false);
+          clearTimeout(timeout);
+        });
+
+        // Also try to get the redirect result if this was a redirect-based sign-in.
+        // If getRedirectResult succeeds, sessionCreated prevents a duplicate call
+        // from the onAuthStateChanged handler above.
         try {
           const redirectResult = await getRedirectResult(auth);
           if (redirectResult && !cancelled) {
             console.log("[AUTH] Redirect result obtained:", redirectResult.user.uid);
-            const idToken = await redirectResult.user.getIdToken();
-            const response = await fetch("/api/auth/session", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ idToken }),
-            });
-            if (!response.ok) {
-              console.error("[AUTH] Session creation after redirect failed:", response.status);
-            } else {
-              console.log("[AUTH] Session cookie set after redirect");
+            if (!sessionCreated) {
+              sessionCreated = true;
+              const idToken = await redirectResult.user.getIdToken();
+              const response = await fetch("/api/auth/session", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ idToken }),
+              });
+              if (response.ok) {
+                console.log("[AUTH] Session cookie set after redirect");
+              } else {
+                console.error("[AUTH] Session creation after redirect failed:", response.status);
+              }
             }
           }
         } catch (redirectErr) {
           console.error("[AUTH] getRedirectResult failed:", redirectErr);
         }
-
-        console.log("[AUTH] onAuthStateChanged listener registered");
-        unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-          console.log("[AUTH] onAuthStateChanged fired:", firebaseUser ? `uid=${firebaseUser.uid}` : "null");
-          setUser(firebaseUser);
-          setLoading(false);
-          clearTimeout(timeout);
-        });
       } catch (err) {
         console.error("[AUTH] Firebase initialization FAILED:", err);
         if (!cancelled) setLoading(false);
