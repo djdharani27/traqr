@@ -8,10 +8,8 @@ import {
   ClipboardList,
   BarChart3,
   GraduationCap,
-  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/components/AuthProvider";
 
 const links = [
   { href: "/", label: "Today", icon: LayoutDashboard },
@@ -22,11 +20,6 @@ const links = [
 
 export function Navbar() {
   const pathname = usePathname();
-  const { user, signOut } = useAuth();
-
-  async function handleSignOut() {
-    await signOut();
-  }
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -56,32 +49,6 @@ export function Navbar() {
             );
           })}
         </nav>
-        {user && (
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 text-sm">
-              {user.photoURL && (
-                <img
-                  src={user.photoURL}
-                  alt={user.displayName ?? ""}
-                  className="size-6 rounded-full"
-                  referrerPolicy="no-referrer"
-                />
-              )}
-              <span className="hidden sm:inline text-muted-foreground text-xs truncate max-w-[120px]">
-                {user.displayName ?? user.email}
-              </span>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-2"
-              onClick={handleSignOut}
-            >
-              <LogOut className="size-4" />
-              <span className="hidden sm:inline">Logout</span>
-            </Button>
-          </div>
-        )}
       </div>
     </header>
   );

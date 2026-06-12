@@ -24,10 +24,7 @@ import {
 const subjects: Subject[] = ["Math", "Reasoning", "GK", "English"];
 
 export default async function AnalyticsPage() {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-
-  const tests = await getTests(user.uid);
+  const tests = await getTests("default-user");
 
   const subjectAverages = subjects.map((s) => ({
     subject: s,

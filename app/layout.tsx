@@ -13,8 +13,6 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-import { AuthProvider } from "@/components/AuthProvider";
-
 export const metadata: Metadata = {
   title: "Traqr — Study Progress Tracker",
   description:
@@ -32,12 +30,10 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AuthProvider>
-          <Navbar />
-          <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8">
-            {children}
-          </main>
-        </AuthProvider>
+        <Navbar />
+        <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8">
+          {children}
+        </main>
       </body>
     </html>
   );

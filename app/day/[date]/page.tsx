@@ -1,5 +1,3 @@
-import { getCurrentUser } from "@/lib/auth-server";
-import { redirect } from "next/navigation";
 import { getTests, getStudyDay, getTasksByTargetDate } from "@/lib/services";
 import { format, parseISO } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,14 +17,11 @@ interface DayPageProps {
 }
 
 export default async function DayPage({ params }: DayPageProps) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-
   const { date } = await params;
   const [tests, studyDay, tasks] = await Promise.all([
-    getTests(user.uid, date),
-    getStudyDay(user.uid, date),
-    getTasksByTargetDate(user.uid, date),
+    getTests("default-user", date),
+    getStudyDay("default-user", date),
+    getTasksByTargetDate("default-user", date),
   ]);
 
   const formattedDate = format(parseISO(date), "EEEE, MMMM d, yyyy");
