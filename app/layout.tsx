@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Navbar } from "@/components/Navbar";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { getCurrentUser } from "@/lib/auth-server";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,21 +21,24 @@ export const metadata: Metadata = {
     "Track your competitive exam preparation with tests, revision tasks, and analytics.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const user = await getCurrentUser();
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <Navbar />
-        <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8">
-          {children}
-        </main>
+        <TooltipProvider>
+          <Navbar userName={user?.name} />
+          <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8">
+            {children}
+          </main>
+        </TooltipProvider>
       </body>
     </html>
   );

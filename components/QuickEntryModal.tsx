@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -46,7 +47,7 @@ export function QuickEntryModal() {
           Quick Entry
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="sm:max-w-sm max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Quick Test Entry</DialogTitle>
           <DialogDescription>
@@ -106,6 +107,43 @@ export function QuickEntryModal() {
               defaultValue="Oliveboard"
             />
           </div>
+
+          {type === "overall" && (
+            <div className="space-y-3 rounded-md border p-3">
+              <Label className="text-xs font-semibold">Subject-wise Scores</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Math</Label>
+                  <div className="flex gap-1">
+                    <Input name="mathCorrect" type="number" placeholder="C" min={0} className="w-full" />
+                    <Input name="mathTotal" type="number" placeholder="T" min={0} className="w-full" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Reasoning</Label>
+                  <div className="flex gap-1">
+                    <Input name="reasoningCorrect" type="number" placeholder="C" min={0} className="w-full" />
+                    <Input name="reasoningTotal" type="number" placeholder="T" min={0} className="w-full" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">GK</Label>
+                  <div className="flex gap-1">
+                    <Input name="gkCorrect" type="number" placeholder="C" min={0} className="w-full" />
+                    <Input name="gkTotal" type="number" placeholder="T" min={0} className="w-full" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">English</Label>
+                  <div className="flex gap-1">
+                    <Input name="englishCorrect" type="number" placeholder="C" min={0} className="w-full" />
+                    <Input name="englishTotal" type="number" placeholder="T" min={0} className="w-full" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label>Correct</Label>
@@ -147,6 +185,17 @@ export function QuickEntryModal() {
               </span>
             </div>
           )}
+
+          <div className="space-y-2">
+            <Label htmlFor="remarkQuick">Remark</Label>
+            <Textarea
+              id="remarkQuick"
+              name="remark"
+              placeholder="Optional notes..."
+              rows={2}
+            />
+          </div>
+
           <Button type="submit" className="w-full" size="sm">
             Save
           </Button>

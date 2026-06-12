@@ -1,11 +1,13 @@
+import { requireUser } from "@/lib/auth-server";
 import { getTests, getAllStudyDays, getAllTasks } from "@/lib/services";
 import { CalendarView } from "@/components/CalendarView";
 
 export default async function CalendarPage() {
+  const user = await requireUser();
   const [tests, studyDays, tasks] = await Promise.all([
-    getTests("default-user"),
-    getAllStudyDays("default-user"),
-    getAllTasks("default-user"),
+    getTests(user.uid),
+    getAllStudyDays(user.uid),
+    getAllTasks(user.uid),
   ]);
 
   return (

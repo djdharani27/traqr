@@ -12,13 +12,57 @@ import {
 } from "@/components/ui/table";
 import { deleteTestAction } from "@/lib/actions";
 import { format, parseISO } from "date-fns";
-import { Trash2, Pencil } from "lucide-react";
+import { Trash2, Pencil, MessageSquare } from "lucide-react";
 import type { Test } from "@/types";
 import { useState } from "react";
 import { TestForm } from "./TestForm";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface TestHistoryTableProps {
   tests: Test[];
+}
+
+function SubjectScorePopover({ test }: { test: Test }) {
+  if (!test.subjectScores) return null;
+
+  const subjects = [
+    { label: "Math", correct: test.subjectScores.mathCorrect, total: test.subjectScores.mathTotal },
+    { label: "Reasoning", correct: test.subjectScores.reasoningCorrect, total: test.subjectScores.reasoningTotal },
+    { label: "GK", correct: test.subjectScores.gkCorrect, total: test.subjectScores.gkTotal },
+    { label: "English", correct: test.subjectScores.englishCorrect, total: test.subjectScores.englishTotal },
+  ];
+
+  return (
+    <Tooltip>
+      <TooltipTrigger className="inline-flex items-center">
+        <span className="cursor-help text-xs text-muted-foreground underline decoration-dotted">
+          {test.subject}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent className="space-y-1 text-xs">
+        {subjects.map((s) => {
+          const pct = s.total > 0 ? Math.round((s.correct / s.total) * 100) : null;
+          return (
+            <div key={s.label} className="flex justify-between gap-4">
+              <span>{s.label}</span>
+              <span>
+                {s.correct}/{s.total}
+                {pct !== null && (
+                  <span className={pct >= 70 ? "text-green-400 ml-1" : pct >= 50 ? "text-amber-400 ml-1" : "text-red-400 ml-1"}>
+                    ({pct}%)
+                  </span>
+                )}
+              </span>
+            </div>
+          );
+        })}
+      </TooltipContent>
+    </Tooltip>
+  );
 }
 
 export function TestHistoryTable({ tests }: TestHistoryTableProps) {
@@ -44,6 +88,7 @@ export function TestHistoryTable({ tests }: TestHistoryTableProps) {
           <TableHead>Platform</TableHead>
           <TableHead>Score</TableHead>
           <TableHead>%</TableHead>
+          <TableHead className="w-[30px]"></TableHead>
           <TableHead className="w-[60px]"></TableHead>
         </TableRow>
       </TableHeader>
@@ -60,7 +105,13 @@ export function TestHistoryTable({ tests }: TestHistoryTableProps) {
                 {test.type}
               </Badge>
             </TableCell>
-            <TableCell>{test.subject}</TableCell>
+            <TableCell>
+              {test.type === "overall" && test.subjectScores ? (
+                <SubjectScorePopover test={test} />
+              ) : (
+                test.subject
+              )}
+            </TableCell>
             <TableCell>{test.platform}</TableCell>
             <TableCell>
               {test.correct}/{test.total}
@@ -77,6 +128,18 @@ export function TestHistoryTable({ tests }: TestHistoryTableProps) {
               >
                 {test.percentage}%
               </span>
+            </TableCell>
+            <TableCell>
+              {test.remark && (
+                <Tooltip>
+                  <TooltipTrigger className="inline-flex items-center">
+                    <MessageSquare className="size-4 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs text-xs">
+                    {test.remark}
+                  </TooltipContent>
+                </Tooltip>
+              )}
             </TableCell>
             <TableCell>
               <div className="flex items-center gap-1">

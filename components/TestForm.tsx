@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -61,7 +62,7 @@ export function TestForm({ defaultDate, onSuccess }: TestFormProps) {
           Add Test
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add Test</DialogTitle>
           <DialogDescription>
@@ -156,6 +157,92 @@ export function TestForm({ defaultDate, onSuccess }: TestFormProps) {
               value={platform === "Custom" ? customPlatform : platform}
             />
           </div>
+
+          {/* Overall subject-wise breakdown */}
+          {type === "overall" && (
+            <div className="space-y-3 rounded-md border p-3">
+              <Label className="text-sm font-semibold">Subject-wise Scores</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-xs">Math</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      name="mathCorrect"
+                      type="number"
+                      placeholder="C"
+                      min={0}
+                      className="w-full"
+                    />
+                    <Input
+                      name="mathTotal"
+                      type="number"
+                      placeholder="T"
+                      min={0}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">Reasoning</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      name="reasoningCorrect"
+                      type="number"
+                      placeholder="C"
+                      min={0}
+                      className="w-full"
+                    />
+                    <Input
+                      name="reasoningTotal"
+                      type="number"
+                      placeholder="T"
+                      min={0}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">GK</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      name="gkCorrect"
+                      type="number"
+                      placeholder="C"
+                      min={0}
+                      className="w-full"
+                    />
+                    <Input
+                      name="gkTotal"
+                      type="number"
+                      placeholder="T"
+                      min={0}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">English</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      name="englishCorrect"
+                      type="number"
+                      placeholder="C"
+                      min={0}
+                      className="w-full"
+                    />
+                    <Input
+                      name="englishTotal"
+                      type="number"
+                      placeholder="T"
+                      min={0}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="correct">Correct</Label>
@@ -198,6 +285,18 @@ export function TestForm({ defaultDate, onSuccess }: TestFormProps) {
               </span>
             </div>
           )}
+
+          {/* Remark field */}
+          <div className="space-y-2">
+            <Label htmlFor="remark">Remark</Label>
+            <Textarea
+              id="remark"
+              name="remark"
+              placeholder="Optional notes about this test..."
+              rows={2}
+            />
+          </div>
+
           <Button type="submit" className="w-full">
             Save Test
           </Button>

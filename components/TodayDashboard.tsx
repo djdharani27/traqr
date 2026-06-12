@@ -1,4 +1,4 @@
-import { getTests, getStudyDay, getTasksByTargetDate, getAllStudyDays } from "@/lib/services";
+import { getTests, getStudyDay, getTasksByTargetDate, getAllStudyDays, getOverdueTasks } from "@/lib/services";
 import { format, parseISO } from "date-fns";
 import {
   CalendarDays,
@@ -13,8 +13,8 @@ import { TestForm } from "./TestForm";
 import { RemarkForm } from "./RemarkForm";
 import { TaskForm } from "./TaskForm";
 import { TaskCard } from "./TaskCard";
+import { TestCard } from "./TestCard";
 import { QuickEntryModal } from "./QuickEntryModal";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { SearchBar } from "./SearchBar";
@@ -25,11 +25,12 @@ interface TodayDashboardProps {
 
 export async function TodayDashboard({ userId }: TodayDashboardProps) {
   const today = format(new Date(), "yyyy-MM-dd");
-  const [tests, studyDay, tasks, allStudyDays, allTests] =
+  const [tests, studyDay, tasks, overdueTasks, allStudyDays, allTests] =
     await Promise.all([
       getTests(userId, today),
       getStudyDay(userId, today),
       getTasksByTargetDate(userId, today),
+      getOverdueTasks(userId),
       getAllStudyDays(userId),
       getTests(userId),
     ]);
@@ -92,6 +93,19 @@ export async function TodayDashboard({ userId }: TodayDashboardProps) {
         <TaskForm sourceDate={today} />
       </div>
 
+      {overdueTasks.length > 0 && (
+        <div className="rounded-md border border-destructive/50 bg-destructive/5 p-4">
+          <h3 className="text-sm font-semibold text-destructive mb-3">
+            Unfinished from earlier ({overdueTasks.length})
+          </h3>
+          <div className="space-y-2">
+            {overdueTasks.map((task) => (
+              <TaskCard key={task.id} task={task} overdue />
+            ))}
+          </div>
+        </div>
+      )}
+
       <Separator />
 
       {/* Content Grid */}
@@ -145,42 +159,7 @@ export async function TodayDashboard({ userId }: TodayDashboardProps) {
             ) : (
               <div className="space-y-3">
                 {tests.map((test) => (
-                  <div
-                    key={test.id}
-                    className="flex items-center justify-between rounded-md border p-3"
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant={
-                            test.type === "overall" ? "default" : "secondary"
-                          }
-                        >
-                          {test.type}
-                        </Badge>
-                        <span className="font-medium text-sm">
-                          {test.subject}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {test.platform}
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {test.correct}/{test.total} correct
-                      </p>
-                    </div>
-                    <span
-                      className={`text-lg font-bold ${
-                        test.percentage >= 70
-                          ? "text-green-500"
-                          : test.percentage >= 50
-                          ? "text-amber-500"
-                          : "text-red-500"
-                      }`}
-                    >
-                      {test.percentage}%
-                    </span>
-                  </div>
+                  <TestCard key={test.id} test={test} />
                 ))}
               </div>
             )}

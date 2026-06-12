@@ -1,5 +1,4 @@
-import { getCurrentUser } from "@/lib/auth-server";
-import { redirect } from "next/navigation";
+import { requireUser } from "@/lib/auth-server";
 import { getTests } from "@/lib/services";
 import {
   getSubjectAverage,
@@ -24,7 +23,8 @@ import {
 const subjects: Subject[] = ["Math", "Reasoning", "GK", "English"];
 
 export default async function AnalyticsPage() {
-  const tests = await getTests("default-user");
+  const user = await requireUser();
+  const tests = await getTests(user.uid);
 
   const subjectAverages = subjects.map((s) => ({
     subject: s,

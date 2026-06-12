@@ -7,18 +7,26 @@ import {
   Calendar,
   ClipboardList,
   BarChart3,
+  MessageSquareText,
   GraduationCap,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { logoutAction } from "@/app/actions";
 
 const links = [
   { href: "/", label: "Today", icon: LayoutDashboard },
   { href: "/calendar", label: "Calendar", icon: Calendar },
   { href: "/tests", label: "Tests", icon: ClipboardList },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/remarks", label: "Remarks", icon: MessageSquareText },
 ];
 
-export function Navbar() {
+interface NavbarProps {
+  userName?: string;
+}
+
+export function Navbar({ userName }: NavbarProps) {
   const pathname = usePathname();
 
   return (
@@ -49,6 +57,18 @@ export function Navbar() {
             );
           })}
         </nav>
+        {userName && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-muted-foreground">
+              {userName}
+            </span>
+            <form action={logoutAction}>
+              <Button type="submit" variant="ghost" size="icon" className="size-8">
+                <LogOut className="size-4" />
+              </Button>
+            </form>
+          </div>
+        )}
       </div>
     </header>
   );

@@ -1,5 +1,7 @@
+import { requireUser } from "@/lib/auth-server";
 import { TodayDashboard } from "@/components/TodayDashboard";
 
 export default async function HomePage() {
-  return <TodayDashboard userId="default-user" />;
+  const user = await requireUser();
+  return <TodayDashboard userId={user.uid} />;
 }

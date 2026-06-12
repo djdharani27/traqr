@@ -1,6 +1,17 @@
 export type TestType = "sectional" | "overall";
 export type Subject = "Math" | "Reasoning" | "GK" | "English" | "Overall";
 
+export interface TestSubjectScores {
+  mathCorrect: number;
+  mathTotal: number;
+  reasoningCorrect: number;
+  reasoningTotal: number;
+  gkCorrect: number;
+  gkTotal: number;
+  englishCorrect: number;
+  englishTotal: number;
+}
+
 export interface Test {
   id: string;
   date: string;
@@ -10,6 +21,8 @@ export interface Test {
   correct: number;
   total: number;
   percentage: number;
+  remark?: string;
+  subjectScores?: TestSubjectScores;
 }
 
 export interface StudyDay {
@@ -24,4 +37,8 @@ export interface Task {
   sourceDate: string;
   targetDate: string;
   completed: boolean;
+  classicCycle?: boolean;
+  parentTaskId?: string;
+  cycleNumber?: number;
+  skipped?: boolean;
 }

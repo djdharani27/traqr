@@ -1,10 +1,12 @@
+import { requireUser } from "@/lib/auth-server";
 import { getTests } from "@/lib/services";
 import { TestHistoryTable } from "@/components/TestHistoryTable";
 import { TestForm } from "@/components/TestForm";
 import { format } from "date-fns";
 
 export default async function TestsPage() {
-  const tests = await getTests("default-user");
+  const user = await requireUser();
+  const tests = await getTests(user.uid);
   const today = format(new Date(), "yyyy-MM-dd");
 
   return (

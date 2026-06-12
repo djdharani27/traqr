@@ -1,3 +1,4 @@
+import { type Test, type StudyDay, type Task, type Subject } from "@/types";
 import {
   getTests as fsGetTests,
   getTestsBySubject as fsGetTestsBySubject,
@@ -5,6 +6,7 @@ import {
   updateTest as fsUpdateTest,
   deleteTest as fsDeleteTest,
   searchTests as fsSearchTests,
+  getTestsWithRemarks as fsGetTestsWithRemarks,
   getStudyDay as fsGetStudyDay,
   getOrCreateStudyDay as fsGetOrCreateStudyDay,
   addRemark as fsAddRemark,
@@ -15,9 +17,9 @@ import {
   addTask as fsAddTask,
   completeTask as fsCompleteTask,
   deleteTask as fsDeleteTask,
+  getOverdueTasks as fsGetOverdueTasks,
+  skipTask as fsSkipTask,
 } from "./firestore";
-
-import type { Test, StudyDay, Task, Subject } from "@/types";
 
 export { type Test, type StudyDay, type Task, type Subject };
 
@@ -61,6 +63,10 @@ export async function searchTests(
   query: string
 ): Promise<Test[]> {
   return fsSearchTests(userId, query);
+}
+
+export async function getTestsWithRemarks(userId: string): Promise<Test[]> {
+  return fsGetTestsWithRemarks(userId);
 }
 
 // ─── Study Days / Remarks ─────────────────────────────────────────
@@ -125,4 +131,12 @@ export async function completeTask(userId: string, id: string): Promise<Task> {
 
 export async function deleteTask(userId: string, id: string): Promise<void> {
   return fsDeleteTask(userId, id);
+}
+
+export async function getOverdueTasks(userId: string): Promise<Task[]> {
+  return fsGetOverdueTasks(userId);
+}
+
+export async function skipTask(userId: string, id: string): Promise<Task> {
+  return fsSkipTask(userId, id);
 }

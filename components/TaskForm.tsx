@@ -11,10 +11,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { addTaskAction } from "@/lib/actions";
-import { format } from "date-fns";
-import { ListTodo } from "lucide-react";
+import { format, addDays } from "date-fns";
+import { ListTodo, RefreshCw } from "lucide-react";
 
 interface TaskFormProps {
   sourceDate?: string;
@@ -28,7 +29,11 @@ export function TaskForm({
   onSuccess,
 }: TaskFormProps) {
   const [open, setOpen] = useState(false);
+  const [classicCycle, setClassicCycle] = useState(false);
   const today = format(new Date(), "yyyy-MM-dd");
+  const defaultTarget = classicCycle
+    ? format(addDays(new Date(), 1), "yyyy-MM-dd")
+    : today;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -49,6 +54,7 @@ export function TaskForm({
           action={async (formData) => {
             await addTaskAction(formData);
             setOpen(false);
+            setClassicCycle(false);
             onSuccess?.();
           }}
           className="space-y-4"
@@ -68,15 +74,39 @@ export function TaskForm({
             name="sourceDate"
             value={sourceDate ?? today}
           />
+          <input
+            type="hidden"
+            name="classicCycle"
+            value={String(classicCycle)}
+          />
           <div className="space-y-2">
             <Label htmlFor="targetDate">Target Date</Label>
             <Input
               id="targetDate"
               name="targetDate"
               type="date"
-              defaultValue={today}
+              defaultValue={defaultTarget}
               required
             />
+          </div>
+          <div className="flex items-start gap-3 rounded-md border p-3">
+            <Checkbox
+              id="classicCycle"
+              checked={classicCycle}
+              onCheckedChange={(v) => setClassicCycle(Boolean(v))}
+            />
+            <div className="grid gap-1.5 leading-none">
+              <label
+                htmlFor="classicCycle"
+                className="flex items-center gap-1.5 text-sm font-medium leading-none cursor-pointer"
+              >
+                <RefreshCw className="size-3.5" />
+                Classic Cycle
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Task repeats 3 times every 3 days, then once after 4 days, then once after 5 days — only when you mark it complete each time.
+              </p>
+            </div>
           </div>
           <Button type="submit" className="w-full">
             Create Task

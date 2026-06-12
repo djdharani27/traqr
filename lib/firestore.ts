@@ -64,13 +64,21 @@ export async function addTest(
 ): Promise<Test> {
   const percentage = Math.round((data.correct / data.total) * 100);
   const now = new Date().toISOString();
-  const docRef = await db().collection(TESTS_COL).add({
+  const docData: Record<string, unknown> = {
     userId,
-    ...data,
+    date: data.date,
+    type: data.type,
+    subject: data.subject,
+    platform: data.platform,
+    correct: data.correct,
+    total: data.total,
     percentage,
     createdAt: now,
     updatedAt: now,
-  });
+  };
+  if (data.remark) docData.remark = data.remark;
+  if (data.subjectScores) docData.subjectScores = data.subjectScores;
+  const docRef = await db().collection(TESTS_COL).add(docData);
   return { id: docRef.id, ...data, percentage };
 }
 
@@ -100,7 +108,7 @@ export async function updateTest(
         : existing.percentage,
   };
 
-  await docRef.update({
+  const updateData: Record<string, unknown> = {
     date: updated.date,
     type: updated.type,
     subject: updated.subject,
@@ -109,7 +117,11 @@ export async function updateTest(
     total: updated.total,
     percentage: updated.percentage,
     updatedAt: new Date().toISOString(),
-  });
+  };
+  if (data.remark !== undefined) updateData.remark = data.remark;
+  if (data.subjectScores !== undefined) updateData.subjectScores = data.subjectScores;
+
+  await docRef.update(updateData);
 
   return updated;
 }
@@ -139,6 +151,18 @@ export async function searchTests(
         t.subject.toLowerCase().includes(q) ||
         t.platform.toLowerCase().includes(q)
     );
+}
+
+export async function getTestsWithRemarks(userId: string): Promise<Test[]> {
+  const snapshot = await db()
+    .collection(TESTS_COL)
+    .where("userId", "==", userId)
+    .get();
+
+  return snapshot.docs
+    .map((doc) => ({ id: doc.id, ...doc.data() } as Test))
+    .filter((t) => t.remark)
+    .sort((a, b) => b.date.localeCompare(a.date));
 }
 
 // ─── Study Days / Remarks ─────────────────────────────────────────
@@ -294,27 +318,92 @@ export async function addTask(
   return { id: docRef.id, ...data, completed: false };
 }
 
-export async function completeTask(
+export async function deleteTask(
   userId: string,
   id: string
-): Promise<Task> {
+): Promise<void> {
+  await db().collection(TASKS_COL).doc(id).delete();
+}
+
+const CLASSIC_INTERVALS = [3, 3, 3, 4, 5];
+
+function addDays(dateStr: string, days: number): string {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+export async function getOverdueTasks(userId: string): Promise<Task[]> {
+  const today = new Date().toISOString().slice(0, 10);
+  const snapshot = await db()
+    .collection(TASKS_COL)
+    .where("userId", "==", userId)
+    .get();
+
+  return snapshot.docs
+    .map((doc) => ({ id: doc.id, ...doc.data() } as Task))
+    .filter((t) => t.targetDate < today && !t.completed && !t.skipped);
+}
+
+export async function skipTask(userId: string, id: string): Promise<Task> {
+  const docRef = db().collection(TASKS_COL).doc(id);
+  const doc = await docRef.get();
+  if (!doc.exists) throw new Error(`Task ${id} not found`);
+  const data = doc.data() as Task;
+  const now = new Date().toISOString();
+
+  await docRef.update({ skipped: true, updatedAt: now });
+
+  if (data.classicCycle && typeof data.cycleNumber === "number") {
+    const nextInterval =
+      CLASSIC_INTERVALS[data.cycleNumber + 1] ?? CLASSIC_INTERVALS[CLASSIC_INTERVALS.length - 1];
+    const nextDate = addDays(data.targetDate, nextInterval);
+    await db().collection(TASKS_COL).add({
+      userId,
+      title: data.title,
+      sourceDate: data.sourceDate,
+      targetDate: nextDate,
+      completed: false,
+      classicCycle: true,
+      parentTaskId: data.parentTaskId ?? data.id,
+      cycleNumber: data.cycleNumber + 1,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  return { ...data, skipped: true };
+}
+
+export async function completeTask(userId: string, id: string): Promise<Task> {
   const docRef = db().collection(TASKS_COL).doc(id);
   const doc = await docRef.get();
   if (!doc.exists) throw new Error(`Task ${id} not found`);
 
   const data = doc.data() as Task;
   const newCompleted = !data.completed;
-  await docRef.update({
-    completed: newCompleted,
-    updatedAt: new Date().toISOString(),
-  });
+  const now = new Date().toISOString();
+  await docRef.update({ completed: newCompleted, updatedAt: now });
+
+  if (newCompleted && data.classicCycle) {
+    const cycleNumber = data.cycleNumber ?? 0;
+    if (cycleNumber < CLASSIC_INTERVALS.length) {
+      const nextInterval = CLASSIC_INTERVALS[cycleNumber];
+      const nextDate = addDays(data.targetDate, nextInterval);
+      await db().collection(TASKS_COL).add({
+        userId,
+        title: data.title,
+        sourceDate: data.sourceDate,
+        targetDate: nextDate,
+        completed: false,
+        classicCycle: true,
+        parentTaskId: data.parentTaskId ?? data.id,
+        cycleNumber: cycleNumber + 1,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+  }
 
   return { ...data, id: doc.id, completed: newCompleted };
-}
-
-export async function deleteTask(
-  userId: string,
-  id: string
-): Promise<void> {
-  await db().collection(TASKS_COL).doc(id).delete();
 }
