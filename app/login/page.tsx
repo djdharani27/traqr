@@ -1,15 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import { loginAction } from "./actions";
+import { useState, useActionState } from "react";
+import { loginAction, type LoginState } from "./actions";
 import { GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertCircle } from "lucide-react";
+
+const initialState: LoginState = {};
 
 export default function LoginPage() {
   const [name, setName] = useState("");
+  const [state, formAction, isPending] = useActionState(loginAction, initialState);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -24,7 +28,7 @@ export default function LoginPage() {
           </p>
         </CardHeader>
         <CardContent>
-          <form action={loginAction} className="space-y-4">
+          <form action={formAction} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Your Name</Label>
               <Input
@@ -36,8 +40,18 @@ export default function LoginPage() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full" disabled={!name.trim()}>
-              Continue
+            {state.error && (
+              <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 rounded-md px-3 py-2">
+                <AlertCircle className="size-4 shrink-0" />
+                <span>{state.error}</span>
+              </div>
+            )}
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={!name.trim() || isPending}
+            >
+              {isPending ? "Signing in..." : "Continue"}
             </Button>
           </form>
         </CardContent>
