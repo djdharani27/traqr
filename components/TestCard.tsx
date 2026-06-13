@@ -50,6 +50,7 @@ export function TestCard({ test, showDelete = false }: TestCardProps) {
               </TooltipTrigger>
               <TooltipContent className="space-y-1 text-xs">
                 {subjects.map((s) => {
+                  if (!s.s) return null;
                   const pct = s.s.total > 0 ? Math.round(((s.s.correct * 2 - s.s.incorrect * 0.5) / (s.s.total * 2)) * 100) : null;
                   return (
                     <div key={s.label} className="flex justify-between gap-4">

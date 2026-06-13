@@ -44,7 +44,14 @@ export function CalendarView({
   });
 
   const testDates = new Set(tests.map((t) => t.date));
-  const remarkDates = new Set(studyDays.filter((d) => d.remarks.length > 0).map((d) => d.date));
+  const remarkDates = new Set(
+    studyDays
+      .filter((d) => {
+        const rem = d.remarks;
+        return Array.isArray(rem) && rem.length > 0;
+      })
+      .map((d) => d.date)
+  );
   const taskDates = new Set(tasks.map((t) => t.targetDate));
 
   return (

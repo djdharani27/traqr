@@ -37,6 +37,7 @@ export async function TodayDashboard({ userId }: TodayDashboardProps) {
 
   const pendingTasks = tasks.filter((t) => !t.completed);
   const completedTasks = tasks.filter((t) => t.completed);
+  const remarks = Array.isArray(studyDay?.remarks) ? studyDay.remarks : [];
 
   return (
     <div className="space-y-6">
@@ -66,7 +67,7 @@ export async function TodayDashboard({ userId }: TodayDashboardProps) {
         />
         <StatCard
           title="Remarks"
-          value={studyDay?.remarks.length ?? 0}
+          value={remarks.length}
           description="Notes saved today"
           icon={MessageSquare}
         />
@@ -132,12 +133,12 @@ export async function TodayDashboard({ userId }: TodayDashboardProps) {
             <CardTitle className="text-base">Today&apos;s Remarks</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {!studyDay || studyDay.remarks.length === 0 ? (
+            {remarks.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">
                 No remarks added today.
               </p>
             ) : (
-              studyDay.remarks.map((remark, i) => (
+              remarks.map((remark, i) => (
                 <div key={i} className="rounded-md bg-muted/50 p-3">
                   <p className="text-sm">{remark}</p>
                 </div>

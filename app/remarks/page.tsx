@@ -37,7 +37,8 @@ export default async function RemarksPage() {
   }
 
   for (const day of studyDays) {
-    for (const remarkText of day.remarks) {
+    const remarks = Array.isArray(day.remarks) ? day.remarks : [];
+    for (const remarkText of remarks) {
       allRemarks.push({
         date: day.date,
         source: "study",

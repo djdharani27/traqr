@@ -48,7 +48,10 @@ export function SearchBar({ tests, studyDays }: SearchBarProps) {
       }));
 
     const remarkResults = studyDays
-      .filter((d) => d.remarks.some((r) => r.toLowerCase().includes(q)))
+      .filter((d) => {
+        const rem = d.remarks;
+        return Array.isArray(rem) && rem.some((r) => r.toLowerCase().includes(q));
+      })
       .slice(0, 3)
       .map((d) => {
         const remark = d.remarks.find((r) => r.toLowerCase().includes(q))!;

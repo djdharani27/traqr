@@ -45,6 +45,7 @@ function SubjectScorePopover({ test }: { test: Test }) {
       </TooltipTrigger>
       <TooltipContent className="space-y-1 text-xs">
         {subjects.map((s) => {
+          if (!s.s) return null;
           const marks = s.s.correct * 2 - s.s.incorrect * 0.5;
           const maxMarks = s.s.total * 2;
           const pct = s.s.total > 0 ? Math.round((marks / maxMarks) * 100) : null;

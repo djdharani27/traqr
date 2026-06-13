@@ -27,6 +27,7 @@ export default async function DayPage({ params }: DayPageProps) {
   const formattedDate = format(parseISO(date), "EEEE, MMMM d, yyyy");
   const pendingTasks = tasks.filter((t) => !t.completed);
   const completedTasks = tasks.filter((t) => t.completed);
+  const remarks = Array.isArray(studyDay?.remarks) ? studyDay.remarks : [];
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
@@ -82,12 +83,12 @@ export default async function DayPage({ params }: DayPageProps) {
             <CardTitle className="text-base">Remarks</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {!studyDay || studyDay.remarks.length === 0 ? (
+            {remarks.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-6">
                 No remarks for this date.
               </p>
             ) : (
-              studyDay.remarks.map((remark, i) => (
+              remarks.map((remark, i) => (
                 <RemarkCard key={i} date={date} remark={remark} index={i} />
               ))
             )}
