@@ -1,7 +1,7 @@
 import { getAdminDb } from "./firebaseAdmin";
 import { FieldValue } from "firebase-admin/firestore";
 import type { Query } from "firebase-admin/firestore";
-import type { Test, StudyDay, Task, Subject } from "@/types";
+import type { Test, StudyDay, Task, Subject, TestRemark } from "@/types";
 
 const TESTS_COL = "tests";
 const STUDY_DAYS_COL = "studyDays";
@@ -270,6 +270,33 @@ export async function deleteRemark(
     });
 
   return { ...day, remarks: updatedRemarks };
+}
+
+export async function deleteTestRemark(
+  userId: string,
+  testId: string,
+  isMainRemark: boolean,
+  remarkIndex?: number
+): Promise<void> {
+  const docRef = db().collection(TESTS_COL).doc(testId);
+  const doc = await docRef.get();
+  if (!doc.exists) throw new Error(`Test ${testId} not found`);
+
+  const testData = doc.data()!;
+  const updateData: Record<string, unknown> = {
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (isMainRemark) {
+    updateData.remark = FieldValue.delete();
+  } else if (remarkIndex !== undefined && testData.remarks) {
+    const updatedRemarks = testData.remarks.filter(
+      (_: TestRemark, i: number) => i !== remarkIndex
+    );
+    updateData.remarks = updatedRemarks;
+  }
+
+  await docRef.update(updateData);
 }
 
 export async function getAllStudyDays(

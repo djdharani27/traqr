@@ -23,26 +23,33 @@ export default async function RemarksPage() {
         content: test.remark,
         subject: test.subject,
         platform: test.platform,
+        testId: test.id,
+        isTestRemark: true,
       });
     }
-    for (const r of test.remarks ?? []) {
+    for (let i = 0; i < (test.remarks?.length ?? 0); i++) {
+      const r = test.remarks![i];
       allRemarks.push({
         date: test.date,
         source: "test",
         content: r.text,
         subject: r.subject ?? test.subject,
         platform: test.platform,
+        testId: test.id,
+        remarkIndex: i,
+        isTestRemark: false,
       });
     }
   }
 
   for (const day of studyDays) {
     const remarks = Array.isArray(day.remarks) ? day.remarks : [];
-    for (const remarkText of remarks) {
+    for (let i = 0; i < remarks.length; i++) {
       allRemarks.push({
         date: day.date,
         source: "study",
-        content: remarkText,
+        content: remarks[i],
+        remarkIndex: i,
       });
     }
   }

@@ -7,6 +7,7 @@ import {
   updateTest,
   addRemark,
   deleteRemark,
+  deleteTestRemark,
   addTask,
   completeTask,
   deleteTask,
@@ -207,6 +208,51 @@ export async function deleteRemarkAction(
   revalidatePath("/");
   revalidatePath("/calendar");
   revalidatePath(`/day/${date}`);
+}
+
+export async function deleteTestRemarkAction(
+  testId: string,
+  isMainRemark: boolean,
+  remarkIndex?: number
+): Promise<void> {
+  const user = await requireUser();
+  await deleteTestRemark(user.uid, testId, isMainRemark, remarkIndex);
+  revalidatePath("/");
+  revalidatePath("/calendar");
+  revalidatePath("/tests");
+  revalidatePath("/analytics");
+  revalidatePath("/remarks");
+}
+
+export async function deleteSelectedRemarksAction(
+  selected: Array<{
+    source: "test" | "study";
+    date: string;
+    testId?: string;
+    remarkIndex?: number;
+    isTestRemark?: boolean;
+  }>
+): Promise<void> {
+  const user = await requireUser();
+  const datesToRevalidate = new Set<string>();
+
+  for (const item of selected) {
+    datesToRevalidate.add(item.date);
+    if (item.source === "study" && item.remarkIndex !== undefined) {
+      await deleteRemark(user.uid, item.date, item.remarkIndex);
+    } else if (item.source === "test" && item.testId) {
+      await deleteTestRemark(user.uid, item.testId, item.isTestRemark ?? false, item.remarkIndex);
+    }
+  }
+
+  revalidatePath("/");
+  revalidatePath("/calendar");
+  revalidatePath("/tests");
+  revalidatePath("/analytics");
+  revalidatePath("/remarks");
+  for (const date of datesToRevalidate) {
+    revalidatePath(`/day/${date}`);
+  }
 }
 
 export async function addTaskAction(formData: FormData): Promise<void> {

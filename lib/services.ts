@@ -11,6 +11,7 @@ import {
   getOrCreateStudyDay as fsGetOrCreateStudyDay,
   addRemark as fsAddRemark,
   deleteRemark as fsDeleteRemark,
+  deleteTestRemark as fsDeleteTestRemark,
   getAllStudyDays as fsGetAllStudyDays,
   getTasksByTargetDate as fsGetTasksByTargetDate,
   getAllTasks as fsGetAllTasks,
@@ -99,6 +100,15 @@ export async function deleteRemark(
   remarkIndex: number
 ): Promise<StudyDay> {
   return fsDeleteRemark(userId, date, remarkIndex);
+}
+
+export async function deleteTestRemark(
+  userId: string,
+  testId: string,
+  isMainRemark: boolean,
+  remarkIndex?: number
+): Promise<void> {
+  return fsDeleteTestRemark(userId, testId, isMainRemark, remarkIndex);
 }
 
 export async function getAllStudyDays(userId: string): Promise<StudyDay[]> {

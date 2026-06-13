@@ -2,9 +2,10 @@
 
 import { useState, useMemo } from "react";
 import { format, parseISO } from "date-fns";
-import { MessageSquareText, ClipboardList } from "lucide-react";
+import { MessageSquareText, ClipboardList, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -22,6 +23,7 @@ import {
 } from "@/components/ui/table";
 import Link from "next/link";
 import type { Subject } from "@/types";
+import { deleteSelectedRemarksAction } from "@/lib/actions";
 
 const SUBJECTS: Subject[] = ["Math", "Reasoning", "GK", "English"];
 
@@ -31,6 +33,9 @@ export interface RemarkEntry {
   content: string;
   subject?: string;
   platform?: string;
+  testId?: string;
+  remarkIndex?: number;
+  isTestRemark?: boolean;
 }
 
 interface RemarksTableProps {
@@ -83,6 +88,19 @@ export function RemarksTable({ allRemarks }: RemarksTableProps) {
     if (next.has(i)) next.delete(i);
     else next.add(i);
     setSelected(next);
+  };
+
+  const handleDeleteSelected = async () => {
+    const selectedRemarks = filtered
+      .map((remark, i) => (selected.has(i) ? remark : null))
+      .filter((r): r is RemarkEntry => r !== null);
+
+    if (selectedRemarks.length === 0) return;
+
+    if (confirm(`Delete ${selectedRemarks.length} selected remark(s)?`)) {
+      await deleteSelectedRemarksAction(selectedRemarks);
+      setSelected(new Set());
+    }
   };
 
   return (
@@ -149,6 +167,18 @@ export function RemarksTable({ allRemarks }: RemarksTableProps) {
             </SelectContent>
           </Select>
         </div>
+
+        {selected.size > 0 && (
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleDeleteSelected}
+            className="gap-1"
+          >
+            <Trash2 className="size-4" />
+            Delete ({selected.size})
+          </Button>
+        )}
 
         <span className="text-xs text-muted-foreground ml-auto">
           {filtered.length} remark{filtered.length !== 1 ? "s" : ""}
