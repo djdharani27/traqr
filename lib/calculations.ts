@@ -1,8 +1,23 @@
 import type { Test, Subject } from "@/types";
 
+export function calculateMarks(correct: number, incorrect: number): number {
+  return correct * 2 - incorrect * 0.5;
+}
+
 export function calculatePercentage(correct: number, total: number): number {
   if (total === 0) return 0;
   return Math.round((correct / total) * 100);
+}
+
+export function calculatePercentageFromMarks(marks: number, total: number): number {
+  const maxMarks = total * 2;
+  if (maxMarks === 0) return 0;
+  return Math.round((marks / maxMarks) * 100);
+}
+
+export function calculateUnanswered(total: number, correct: number, incorrect: number): number {
+  const unanswered = total - correct - incorrect;
+  return Math.max(0, unanswered);
 }
 
 export function getSubjectAverage(

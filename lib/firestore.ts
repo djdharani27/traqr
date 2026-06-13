@@ -58,11 +58,17 @@ export async function getTestsBySubject(
   return tests.sort((a, b) => b.date.localeCompare(a.date));
 }
 
+function calcMarks(correct: number, incorrect: number): number {
+  return correct * 2 - incorrect * 0.5;
+}
+
 export async function addTest(
   userId: string,
   data: Omit<Test, "id" | "percentage">
 ): Promise<Test> {
-  const percentage = Math.round((data.correct / data.total) * 100);
+  const marks = data.marks ?? calcMarks(data.correct, data.incorrect);
+  const maxMarks = data.total * 2;
+  const percentage = maxMarks > 0 ? Math.round((marks / maxMarks) * 100) : 0;
   const now = new Date().toISOString();
   const docData: Record<string, unknown> = {
     userId,
@@ -71,15 +77,19 @@ export async function addTest(
     subject: data.subject,
     platform: data.platform,
     correct: data.correct,
+    incorrect: data.incorrect,
     total: data.total,
+    unanswered: data.unanswered,
+    marks,
     percentage,
+    remarks: data.remarks ?? [],
     createdAt: now,
     updatedAt: now,
   };
   if (data.remark) docData.remark = data.remark;
   if (data.subjectScores) docData.subjectScores = data.subjectScores;
   const docRef = await db().collection(TESTS_COL).add(docData);
-  return { id: docRef.id, ...data, percentage };
+  return { id: docRef.id, ...data, marks, percentage };
 }
 
 export async function updateTest(
@@ -94,18 +104,18 @@ export async function updateTest(
   const docData = doc.data()!;
   const existing = { id: doc.id, ...docData } as Test;
 
+  const correct = data.correct ?? existing.correct ?? 0;
+  const incorrect = data.incorrect ?? existing.incorrect ?? 0;
+  const total = data.total ?? existing.total ?? 0;
+  const marks = correct * 2 - incorrect * 0.5;
+  const maxMarks = total * 2;
+  const percentage = maxMarks > 0 ? Math.round((marks / maxMarks) * 100) : 0;
+
   const updated = {
     ...existing,
     ...data,
-    percentage:
-      data.correct !== undefined || data.total !== undefined
-        ? Math.round(
-            (
-              (data.correct ?? existing.correct) /
-              (data.total ?? existing.total)
-            ) * 100
-          )
-        : existing.percentage,
+    marks,
+    percentage,
   };
 
   const updateData: Record<string, unknown> = {
@@ -114,8 +124,12 @@ export async function updateTest(
     subject: updated.subject,
     platform: updated.platform,
     correct: updated.correct,
+    incorrect: updated.incorrect,
     total: updated.total,
+    unanswered: updated.unanswered ?? 0,
+    marks: updated.marks,
     percentage: updated.percentage,
+    remarks: updated.remarks ?? [],
     updatedAt: new Date().toISOString(),
   };
   if (data.remark !== undefined) updateData.remark = data.remark;
@@ -161,7 +175,7 @@ export async function getTestsWithRemarks(userId: string): Promise<Test[]> {
 
   return snapshot.docs
     .map((doc) => ({ id: doc.id, ...doc.data() } as Test))
-    .filter((t) => t.remark)
+    .filter((t) => (t.remarks && t.remarks.length > 0) || t.remark)
     .sort((a, b) => b.date.localeCompare(a.date));
 }
 

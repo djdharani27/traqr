@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { deleteTestAction } from "@/lib/actions";
 import { format, parseISO } from "date-fns";
-import { Trash2, Pencil, MessageSquare } from "lucide-react";
+import { Trash2, MessageSquare } from "lucide-react";
 import type { Test } from "@/types";
 import { useState } from "react";
 import { TestForm } from "./TestForm";
@@ -30,10 +30,10 @@ function SubjectScorePopover({ test }: { test: Test }) {
   if (!test.subjectScores) return null;
 
   const subjects = [
-    { label: "Math", correct: test.subjectScores.mathCorrect, total: test.subjectScores.mathTotal },
-    { label: "Reasoning", correct: test.subjectScores.reasoningCorrect, total: test.subjectScores.reasoningTotal },
-    { label: "GK", correct: test.subjectScores.gkCorrect, total: test.subjectScores.gkTotal },
-    { label: "English", correct: test.subjectScores.englishCorrect, total: test.subjectScores.englishTotal },
+    { label: "Math", s: test.subjectScores.math },
+    { label: "Reasoning", s: test.subjectScores.reasoning },
+    { label: "GK", s: test.subjectScores.gk },
+    { label: "English", s: test.subjectScores.english },
   ];
 
   return (
@@ -45,12 +45,14 @@ function SubjectScorePopover({ test }: { test: Test }) {
       </TooltipTrigger>
       <TooltipContent className="space-y-1 text-xs">
         {subjects.map((s) => {
-          const pct = s.total > 0 ? Math.round((s.correct / s.total) * 100) : null;
+          const marks = s.s.correct * 2 - s.s.incorrect * 0.5;
+          const maxMarks = s.s.total * 2;
+          const pct = s.s.total > 0 ? Math.round((marks / maxMarks) * 100) : null;
           return (
             <div key={s.label} className="flex justify-between gap-4">
               <span>{s.label}</span>
               <span>
-                {s.correct}/{s.total}
+                C:{s.s.correct} I:{s.s.incorrect} T:{s.s.total}
                 {pct !== null && (
                   <span className={pct >= 70 ? "text-green-400 ml-1" : pct >= 50 ? "text-amber-400 ml-1" : "text-red-400 ml-1"}>
                     ({pct}%)
@@ -86,16 +88,24 @@ export function TestHistoryTable({ tests }: TestHistoryTableProps) {
           <TableHead>Type</TableHead>
           <TableHead>Subject</TableHead>
           <TableHead>Platform</TableHead>
-          <TableHead>Score</TableHead>
+          <TableHead>C / I / U</TableHead>
+          <TableHead>Marks</TableHead>
           <TableHead>%</TableHead>
           <TableHead className="w-[30px]"></TableHead>
           <TableHead className="w-[60px]"></TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {sorted.map((test) => (
+        {sorted.map((test) => {
+          const allRemarks = test.remarks?.length
+            ? test.remarks
+            : test.remark
+            ? [{ text: test.remark }]
+            : [];
+
+          return (
           <TableRow key={test.id}>
-            <TableCell className="font-medium">
+            <TableCell className="font-medium whitespace-nowrap">
               {format(parseISO(test.date), "MMM d, yyyy")}
             </TableCell>
             <TableCell>
@@ -113,8 +123,19 @@ export function TestHistoryTable({ tests }: TestHistoryTableProps) {
               )}
             </TableCell>
             <TableCell>{test.platform}</TableCell>
+            <TableCell className="text-sm">
+              <span className="text-green-500 font-medium">{test.correct}</span>
+              {" / "}
+              <span className="text-red-500 font-medium">{test.incorrect}</span>
+              {" / "}
+              <span className="text-muted-foreground">{test.unanswered}</span>
+              <span className="text-muted-foreground text-xs ml-1">(of {test.total})</span>
+            </TableCell>
             <TableCell>
-              {test.correct}/{test.total}
+              <span className={test.marks >= 0 ? "text-green-500 font-medium" : "text-red-500 font-medium"}>
+                {test.marks}
+              </span>
+              <span className="text-muted-foreground text-sm">/{test.total * 2}</span>
             </TableCell>
             <TableCell>
               <span
@@ -130,13 +151,18 @@ export function TestHistoryTable({ tests }: TestHistoryTableProps) {
               </span>
             </TableCell>
             <TableCell>
-              {test.remark && (
+              {allRemarks.length > 0 && (
                 <Tooltip>
                   <TooltipTrigger className="inline-flex items-center">
                     <MessageSquare className="size-4 text-muted-foreground" />
                   </TooltipTrigger>
-                  <TooltipContent className="max-w-xs text-xs">
-                    {test.remark}
+                  <TooltipContent className="max-w-xs text-xs space-y-1">
+                    {allRemarks.map((r, i) => (
+                      <div key={i}>
+                        {r.subject && <span className="text-muted-foreground">[{r.subject}] </span>}
+                        {r.text}
+                      </div>
+                    ))}
                   </TooltipContent>
                 </Tooltip>
               )}
@@ -161,7 +187,8 @@ export function TestHistoryTable({ tests }: TestHistoryTableProps) {
               </div>
             </TableCell>
           </TableRow>
-        ))}
+          );
+        })}
       </TableBody>
     </Table>
   );

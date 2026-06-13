@@ -1,15 +1,22 @@
 export type TestType = "sectional" | "overall";
 export type Subject = "Math" | "Reasoning" | "GK" | "English" | "Overall";
 
+export interface SectionScore {
+  correct: number;
+  incorrect: number;
+  total: number;
+}
+
 export interface TestSubjectScores {
-  mathCorrect: number;
-  mathTotal: number;
-  reasoningCorrect: number;
-  reasoningTotal: number;
-  gkCorrect: number;
-  gkTotal: number;
-  englishCorrect: number;
-  englishTotal: number;
+  math: SectionScore;
+  reasoning: SectionScore;
+  gk: SectionScore;
+  english: SectionScore;
+}
+
+export interface TestRemark {
+  text: string;
+  subject?: Subject;
 }
 
 export interface Test {
@@ -19,9 +26,13 @@ export interface Test {
   subject: Subject;
   platform: string;
   correct: number;
+  incorrect: number;
   total: number;
+  unanswered: number;
+  marks: number;
   percentage: number;
   remark?: string;
+  remarks: TestRemark[];
   subjectScores?: TestSubjectScores;
 }
 

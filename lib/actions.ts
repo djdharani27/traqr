@@ -13,21 +13,67 @@ import {
   skipTask,
 } from "./services";
 import { requireUser } from "./auth-server";
-import type { Subject, TestType, TestSubjectScores } from "@/types";
+import { calculateMarks, calculateUnanswered } from "./calculations";
+import type { Subject, TestType, TestSubjectScores, TestRemark, SectionScore } from "@/types";
+
+const SUBJECTS: Subject[] = ["Math", "Reasoning", "GK", "English"];
+
+function parseSectionScore(formData: FormData, prefix: string): SectionScore {
+  const correct = parseInt(formData.get(`${prefix}Correct`) as string) || 0;
+  const incorrect = parseInt(formData.get(`${prefix}Incorrect`) as string) || 0;
+  const total = parseInt(formData.get(`${prefix}Total`) as string) || 25;
+  return { correct, incorrect, total };
+}
 
 function parseSubjectScores(formData: FormData): TestSubjectScores | undefined {
-  const mathCorrect = formData.get("mathCorrect") as string;
-  if (!mathCorrect && mathCorrect !== "0") return undefined;
+  const mathTotal = formData.get("mathTotal") as string;
+  if (!mathTotal && mathTotal !== "0") return undefined;
   return {
-    mathCorrect: parseInt(mathCorrect) || 0,
-    mathTotal: parseInt(formData.get("mathTotal") as string) || 0,
-    reasoningCorrect: parseInt(formData.get("reasoningCorrect") as string) || 0,
-    reasoningTotal: parseInt(formData.get("reasoningTotal") as string) || 0,
-    gkCorrect: parseInt(formData.get("gkCorrect") as string) || 0,
-    gkTotal: parseInt(formData.get("gkTotal") as string) || 0,
-    englishCorrect: parseInt(formData.get("englishCorrect") as string) || 0,
-    englishTotal: parseInt(formData.get("englishTotal") as string) || 0,
+    math: parseSectionScore(formData, "math"),
+    reasoning: parseSectionScore(formData, "reasoning"),
+    gk: parseSectionScore(formData, "gk"),
+    english: parseSectionScore(formData, "english"),
   };
+}
+
+function parseRemarks(formData: FormData, subject?: Subject): TestRemark[] {
+  const remarks: TestRemark[] = [];
+  // overall remarks (subject-specific)
+  if (subject) {
+    formData.getAll("remarkText").forEach((text) => {
+      const t = text as string;
+      if (t.trim()) remarks.push({ text: t.trim(), subject });
+    });
+  }
+  // subject-wise remarks
+  for (const subj of SUBJECTS) {
+    formData.getAll(`remark_${subj}`).forEach((text) => {
+      const t = text as string;
+      if (t.trim()) remarks.push({ text: t.trim(), subject: subj });
+    });
+  }
+  return remarks;
+}
+
+function computeOverallMarks(subjectScores: TestSubjectScores): {
+  correct: number;
+  incorrect: number;
+  total: number;
+  unanswered: number;
+  marks: number;
+} {
+  let correct = 0;
+  let incorrect = 0;
+  let total = 0;
+  for (const subj of SUBJECTS) {
+    const s = subjectScores[subj.toLowerCase() as keyof TestSubjectScores];
+    correct += s.correct;
+    incorrect += s.incorrect;
+    total += s.total;
+  }
+  const unanswered = calculateUnanswered(total, correct, incorrect);
+  const marks = calculateMarks(correct, incorrect);
+  return { correct, incorrect, total, unanswered, marks };
 }
 
 export async function addTestAction(formData: FormData): Promise<void> {
@@ -36,12 +82,37 @@ export async function addTestAction(formData: FormData): Promise<void> {
   const type = formData.get("type") as TestType;
   const subject = formData.get("subject") as Subject;
   const platform = formData.get("platform") as string;
-  const correct = parseInt(formData.get("correct") as string);
-  const total = parseInt(formData.get("total") as string);
-  const remark = (formData.get("remark") as string) || undefined;
   const subjectScores = parseSubjectScores(formData);
 
-  await addTest(user.uid, { date, type, subject, platform, correct, total, remark, subjectScores });
+  let correct: number;
+  let incorrect: number;
+  let total: number;
+  let unanswered: number;
+  let marks: number;
+
+  if (type === "overall" && subjectScores) {
+    const overall = computeOverallMarks(subjectScores);
+    correct = overall.correct;
+    incorrect = overall.incorrect;
+    total = overall.total;
+    unanswered = overall.unanswered;
+    marks = overall.marks;
+  } else {
+    correct = parseInt(formData.get("correct") as string) || 0;
+    incorrect = parseInt(formData.get("incorrect") as string) || 0;
+    total = parseInt(formData.get("total") as string) || 25;
+    unanswered = calculateUnanswered(total, correct, incorrect);
+    marks = calculateMarks(correct, incorrect);
+  }
+
+  const remark = (formData.get("remark") as string) || undefined;
+  const remarks = parseRemarks(formData, type === "sectional" ? subject : undefined);
+
+  await addTest(user.uid, {
+    date, type, subject, platform,
+    correct, incorrect, total, unanswered, marks,
+    remark, remarks, subjectScores,
+  });
   revalidatePath("/");
   revalidatePath("/calendar");
   revalidatePath("/tests");
@@ -59,12 +130,37 @@ export async function updateTestAction(
   const type = formData.get("type") as TestType;
   const subject = formData.get("subject") as Subject;
   const platform = formData.get("platform") as string;
-  const correct = parseInt(formData.get("correct") as string);
-  const total = parseInt(formData.get("total") as string);
-  const remark = (formData.get("remark") as string) || undefined;
   const subjectScores = parseSubjectScores(formData);
 
-  await updateTest(user.uid, id, { date, type, subject, platform, correct, total, remark, subjectScores });
+  let correct: number;
+  let incorrect: number;
+  let total: number;
+  let unanswered: number;
+  let marks: number;
+
+  if (type === "overall" && subjectScores) {
+    const overall = computeOverallMarks(subjectScores);
+    correct = overall.correct;
+    incorrect = overall.incorrect;
+    total = overall.total;
+    unanswered = overall.unanswered;
+    marks = overall.marks;
+  } else {
+    correct = parseInt(formData.get("correct") as string) || 0;
+    incorrect = parseInt(formData.get("incorrect") as string) || 0;
+    total = parseInt(formData.get("total") as string) || 25;
+    unanswered = calculateUnanswered(total, correct, incorrect);
+    marks = calculateMarks(correct, incorrect);
+  }
+
+  const remark = (formData.get("remark") as string) || undefined;
+  const remarks = parseRemarks(formData, type === "sectional" ? subject : undefined);
+
+  await updateTest(user.uid, id, {
+    date, type, subject, platform,
+    correct, incorrect, total, unanswered, marks,
+    remark, remarks, subjectScores,
+  });
   revalidatePath("/");
   revalidatePath("/calendar");
   revalidatePath("/tests");
@@ -89,8 +185,13 @@ export async function addRemarkAction(
   formData: FormData
 ): Promise<void> {
   const user = await requireUser();
-  const remark = formData.get("remark") as string;
-  await addRemark(user.uid, date, remark);
+  const remarks = formData.getAll("remark") as string[];
+  for (const remark of remarks) {
+    const trimmed = remark.trim();
+    if (trimmed) {
+      await addRemark(user.uid, date, trimmed);
+    }
+  }
   revalidatePath("/");
   revalidatePath("/calendar");
   revalidatePath("/remarks");

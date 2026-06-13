@@ -19,17 +19,23 @@ interface TestCardProps {
 export function TestCard({ test, showDelete = false }: TestCardProps) {
   const subjects = test.subjectScores
     ? [
-        { label: "Math", correct: test.subjectScores.mathCorrect, total: test.subjectScores.mathTotal },
-        { label: "Reasoning", correct: test.subjectScores.reasoningCorrect, total: test.subjectScores.reasoningTotal },
-        { label: "GK", correct: test.subjectScores.gkCorrect, total: test.subjectScores.gkTotal },
-        { label: "English", correct: test.subjectScores.englishCorrect, total: test.subjectScores.englishTotal },
+        { label: "Math", s: test.subjectScores.math },
+        { label: "Reasoning", s: test.subjectScores.reasoning },
+        { label: "GK", s: test.subjectScores.gk },
+        { label: "English", s: test.subjectScores.english },
       ]
     : null;
+
+  const allRemarks = test.remarks?.length
+    ? test.remarks
+    : test.remark
+    ? [{ text: test.remark }]
+    : [];
 
   return (
     <div className="flex items-center justify-between rounded-md border p-3">
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Badge
             variant={test.type === "overall" ? "default" : "secondary"}
           >
@@ -44,12 +50,12 @@ export function TestCard({ test, showDelete = false }: TestCardProps) {
               </TooltipTrigger>
               <TooltipContent className="space-y-1 text-xs">
                 {subjects.map((s) => {
-                  const pct = s.total > 0 ? Math.round((s.correct / s.total) * 100) : null;
+                  const pct = s.s.total > 0 ? Math.round(((s.s.correct * 2 - s.s.incorrect * 0.5) / (s.s.total * 2)) * 100) : null;
                   return (
                     <div key={s.label} className="flex justify-between gap-4">
                       <span>{s.label}</span>
                       <span>
-                        {s.correct}/{s.total}
+                        {s.s.correct}/{s.s.incorrect}/{s.s.total}
                         {pct !== null && (
                           <span className={pct >= 70 ? "text-green-400 ml-1" : pct >= 50 ? "text-amber-400 ml-1" : "text-red-400 ml-1"}>
                             ({pct}%)
@@ -65,19 +71,27 @@ export function TestCard({ test, showDelete = false }: TestCardProps) {
             <span className="font-medium text-sm">{test.subject}</span>
           )}
           <span className="text-xs text-muted-foreground">{test.platform}</span>
-          {test.remark && (
+          {allRemarks.length > 0 && (
             <Tooltip>
               <TooltipTrigger className="inline-flex items-center">
                 <MessageSquare className="size-3 text-muted-foreground shrink-0" />
               </TooltipTrigger>
-              <TooltipContent className="max-w-xs text-xs">
-                {test.remark}
+              <TooltipContent className="max-w-xs text-xs space-y-1">
+                {allRemarks.map((r, i) => (
+                  <div key={i}>
+                    {r.subject && <span className="text-muted-foreground">[{r.subject}] </span>}
+                    {r.text}
+                  </div>
+                ))}
               </TooltipContent>
             </Tooltip>
           )}
         </div>
         <p className="text-xs text-muted-foreground mt-1">
-          {test.correct}/{test.total} correct
+          {test.correct} correct · {test.incorrect} incorrect · {test.unanswered} unanswered
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Marks: <span className={test.marks >= 0 ? "text-green-500 font-medium" : "text-red-500 font-medium"}>{test.marks}/{test.total * 2}</span>
         </p>
       </div>
       <div className="flex items-center gap-2">
